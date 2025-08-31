@@ -160,7 +160,11 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
     choices: availableChoices,
     onStatisticsLoaded: (stats) => {
       // Auto-show stats if there are interesting insights
-      const hasRareChoices = stats.some(stat => ['rare', 'ultra-rare'].includes(stat.rarity_level || 'common'))
+      const hasRareChoices = stats.some(stat => {
+        const percentage = stat.percentage || 0
+        const rarity = percentage < 5 ? 'ultra-rare' : percentage < 15 ? 'rare' : percentage < 35 ? 'uncommon' : 'common'
+        return ['rare', 'ultra-rare'].includes(rarity)
+      })
       if (hasRareChoices && !showChoiceStats) {
         setShowChoiceStats(true)
       }

@@ -13,10 +13,10 @@ export async function GET() {
       throw new Error(`Failed to get choice statistics job health: ${mvError.message}`)
     }
 
-    // Get recent cost tracking as a proxy for system activity
+    // Get recent story runs as a proxy for system activity
     const { data: refreshLogs, error: logsError } = await supabase
-      .from('cost_tracking')
-      .select('*')
+      .from('story_runs')
+      .select('id, created_at, genre, completed')
       .order('created_at', { ascending: false })
       .limit(20)
 
@@ -166,14 +166,13 @@ function analyzeSystemHealth(
   // Analyze recent activity logs
   if (refreshLogs && refreshLogs.length > 0) {
     const recentActivity = refreshLogs.length
-    const totalTokens = refreshLogs.reduce((sum: number, log: any) => sum + (log.tokens_used || 0), 0)
-    const totalCost = refreshLogs.reduce((sum: number, log: any) => sum + (log.estimated_cost || 0), 0)
+    const completedStories = refreshLogs.filter((log: any) => log.completed).length
 
     metrics.recentActivity = {
-      totalRequests: recentActivity,
-      totalTokens,
-      totalCost: totalCost.toFixed(4),
-      avgTokensPerRequest: recentActivity > 0 ? Math.round(totalTokens / recentActivity) : 0
+      totalStoryRuns: recentActivity,
+      completedStories,
+      completionRate: recentActivity > 0 ? Math.round((completedStories / recentActivity) * 100) : 0,
+      genres: Array.from(new Set(refreshLogs.map((log: any) => log.genre)))
     }
 
     if (recentActivity === 0) {

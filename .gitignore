@@ -188,3 +188,96 @@ admin-test.js
 final-verification.js
 verify-trigger.js
 clean_schema.sql
+
+# Additional files not needed for Netlify deployment
+disable_email_confirmation.md
+GUEST_USER_REMOVAL_SUMMARY.md
+*.backup
+*.bak
+
+# Development workflows and CI files (Netlify has its own)
+.github/workflows/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Local development tools
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/extensions.json
+
+# Supabase CLI files not needed for deployment
+supabase/config.toml
+supabase/.gitignore
+supabase/seed.sql
+
+# Development scripts
+scripts/
+bin/
+tools/
+
+# Coverage reports
+coverage/
+.nyc_output/
+lcov.info
+
+# Performance monitoring files
+lighthouse-report.html
+bundle-analyzer-report.html
+
+# Local database dumps
+*.dump
+*.backup
+
+# Temporary files
+.tmp/
+.temp/
+*.tmp
+*.temp
+
+# IDE and editor files
+*.sublime-project
+*.sublime-workspace
+.atom/
+.brackets.json
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# SQL debug and migration files (development only)
+analytics-setup.sql
+apply_migration.sql
+debug_auth.sql
+debug_login_specific.sql
+disable_auth_trigger.sql
+fix_auth_issue.sql
+fix_email_confirmation.sql
+
+# JavaScript debug/fix scripts (development only)
+fix-final-dollars.js
+fix-migrations-v2.js
+fix-migrations.js
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
+# Test configuration
+vitest.config.ts
+
+# Lighthouse configuration (development only)
+lighthouse.config.js

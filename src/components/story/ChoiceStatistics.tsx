@@ -71,6 +71,13 @@ export function ChoiceStatistics({
     }
   }
 
+  const calculateRarity = (percentage: number): string => {
+    if (percentage < 5) return 'ultra-rare'
+    if (percentage < 15) return 'rare'
+    if (percentage < 35) return 'uncommon'
+    return 'common'
+  }
+
   if (isLoading) {
     return (
       <div className="animate-pulse">
@@ -107,7 +114,7 @@ export function ChoiceStatistics({
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <span className="text-lg">{getRarityIcon(selectedStats.rarity_level || 'common')}</span>
+              <span className="text-lg">{getRarityIcon(calculateRarity(selectedStats.percentage || 0))}</span>
               <span className="text-sm font-medium text-blue-800">
                 Your Choice
               </span>
@@ -116,8 +123,8 @@ export function ChoiceStatistics({
               <div className="text-lg font-bold text-blue-800">
                 {(selectedStats.percentage || 0).toFixed(1)}%
               </div>
-              <div className={`text-xs px-2 py-1 rounded-full ${getRarityColor(selectedStats.rarity_level || 'common')}`}>
-                {selectedStats.rarity_level || 'common'}
+              <div className={`text-xs px-2 py-1 rounded-full ${getRarityColor(calculateRarity(selectedStats.percentage || 0))}`}>
+                {calculateRarity(selectedStats.percentage || 0)}
               </div>
             </div>
           </div>
@@ -147,8 +154,8 @@ export function ChoiceStatistics({
                   <span className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs font-medium">
                     {stat.option_id}
                   </span>
-                  <span className={`px-2 py-1 rounded text-xs ${getRarityColor(stat.rarity_level || 'common')}`}>
-                    {stat.rarity_level || 'common'}
+                  <span className={`px-2 py-1 rounded text-xs ${getRarityColor(calculateRarity(stat.percentage || 0))}`}>
+                    {calculateRarity(stat.percentage || 0)}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">

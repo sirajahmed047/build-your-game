@@ -221,6 +221,7 @@ export async function downgradeToFree(userId: string): Promise<void> {
 
 /**
  * Track conversion events for analytics
+ * Note: Conversion events table not implemented yet, logging for now
  */
 async function trackConversionEvent(
   userId: string, 
@@ -230,20 +231,30 @@ async function trackConversionEvent(
   revenueAmount?: number
 ): Promise<void> {
   try {
-    const { error } = await supabase
-      .from('conversion_events')
-      .insert({
-        user_id: userId,
-        event_type: eventType,
-        from_tier: fromTier,
-        to_tier: toTier,
-        revenue_amount: revenueAmount || null
-      })
-
-    if (error) {
-      console.error('Error tracking conversion event:', error)
-      // Don't throw - this is non-critical
-    }
+    // Log conversion event for now - can be replaced with actual table later
+    console.log('Conversion event:', {
+      userId,
+      eventType,
+      fromTier,
+      toTier,
+      revenueAmount,
+      timestamp: new Date().toISOString()
+    })
+    
+    // TODO: Implement conversion_events table and uncomment below
+    // const { error } = await supabase
+    //   .from('conversion_events')
+    //   .insert({
+    //     user_id: userId,
+    //     event_type: eventType,
+    //     from_tier: fromTier,
+    //     to_tier: toTier,
+    //     revenue_amount: revenueAmount || null
+    //   })
+    //
+    // if (error) {
+    //   console.error('Error tracking conversion event:', error)
+    // }
   } catch (error) {
     console.error('Conversion tracking failed:', error)
     // Don't throw - this is non-critical

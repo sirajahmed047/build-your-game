@@ -202,7 +202,7 @@ export function useCreateStoryStep() {
   return useMutation({
     mutationFn: StoryStepQueries.create,
     onSuccess: (newStep) => {
-      if (newStep) {
+      if (newStep && newStep.story_run_id) {
         // Update the specific story step cache
         queryClient.setQueryData(queryKeys.storyStep(newStep.id), newStep)
         

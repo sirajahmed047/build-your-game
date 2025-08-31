@@ -62,90 +62,102 @@ export function AnalyticsDashboard() {
 
   const loadDailyMetrics = async () => {
     const startDate = format(subDays(new Date(), dateRange), 'yyyy-MM-dd')
+    
+    // Use story_runs to generate daily metrics
     const { data, error } = await supabase
-      .from('daily_metrics')
-      .select('*')
-      .gte('date', startDate)
-      .order('date', { ascending: true })
+      .from('story_runs')
+      .select('created_at, completed, genre')
+      .gte('created_at', startDate)
+      .order('created_at', { ascending: true })
 
     if (error) {
       console.error('Failed to load daily metrics:', error)
       return
     }
 
-    setDailyMetrics(data || [])
+    // Transform story runs into daily metrics
+    const dailyData = (data || []).reduce((acc: any[], run) => {
+      const date = format(new Date(run.created_at || new Date()), 'yyyy-MM-dd')
+      const existing = acc.find(item => item.date === date)
+      
+      if (existing) {
+        existing.total_users += 1
+        existing.new_stories += 1
+        if (run.completed) existing.completed_stories += 1
+      } else {
+        acc.push({
+          date,
+          total_users: 1,
+          new_stories: 1,
+          completed_stories: run.completed ? 1 : 0,
+          retention_rate: 0 // Will calculate separately
+        })
+      }
+      
+      return acc
+    }, [])
+
+    setDailyMetrics(dailyData)
   }
 
   const loadRetentionData = async () => {
-    const startDate = format(subDays(new Date(), 30), 'yyyy-MM-dd')
-    const { data, error } = await supabase
-      .from('retention_cohorts')
-      .select('*')
-      .gte('cohort_date', startDate)
-      .lte('period_number', 7) // First week retention
-      .order('cohort_date', { ascending: true })
-
-    if (error) {
-      console.error('Failed to load retention data:', error)
-      return
-    }
-
-    setRetentionData(data || [])
+    // For now, return empty retention data since we don't have user tracking yet
+    // This can be implemented later when we have proper user session tracking
+    setRetentionData([])
   }
 
   const loadEngagementMetrics = async () => {
     const startDate = format(subDays(new Date(), dateRange), 'yyyy-MM-dd')
     
-    // Get event counts
-    const { data: eventData, error: eventError } = await supabase
-      .from('user_events')
-      .select('event_type, user_id, session_id')
+    // Use story_runs and story_steps to generate engagement metrics
+    const { data: storyData, error: storyError } = await supabase
+      .from('story_runs')
+      .select('id, user_id, session_id, genre, completed, created_at')
       .gte('created_at', startDate)
 
-    if (eventError) {
-      console.error('Failed to load event data:', eventError)
+    if (storyError) {
+      console.error('Failed to load story data:', storyError)
       return
     }
 
-    // Get feature usage
-    const { data: featureData, error: featureError } = await supabase
-      .from('feature_usage')
-      .select('feature_name, usage_count')
-      .gte('first_used_at', startDate)
+    const { data: stepData, error: stepError } = await supabase
+      .from('story_steps')
+      .select('story_run_id, selected_choice_id')
+      .in('story_run_id', (storyData || []).map(s => s.id))
 
-    if (featureError) {
-      console.error('Failed to load feature data:', featureError)
+    if (stepError) {
+      console.error('Failed to load step data:', stepError)
       return
     }
 
     // Process the data
-    const totalEvents = eventData?.length || 0
+    const totalEvents = (storyData?.length || 0) + (stepData?.length || 0)
     const uniqueUsers = new Set(
-      eventData?.map(e => e.user_id || e.session_id).filter(Boolean)
+      storyData?.map(s => s.user_id || s.session_id).filter(Boolean)
     ).size
     const avgEventsPerUser = uniqueUsers > 0 ? totalEvents / uniqueUsers : 0
 
-    // Top events
-    const eventCounts = eventData?.reduce((acc, event) => {
-      acc[event.event_type] = (acc[event.event_type] || 0) + 1
+    // Top events (story genres)
+    const genreCounts = storyData?.reduce((acc, story) => {
+      acc[story.genre] = (acc[story.genre] || 0) + 1
       return acc
     }, {} as Record<string, number>) || {}
 
-    const topEvents = Object.entries(eventCounts)
+    const topEvents = Object.entries(genreCounts)
       .map(([event_type, count]) => ({ event_type, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5)
 
-    // Top features
-    const featureCounts = featureData?.reduce((acc, feature) => {
-      acc[feature.feature_name] = (acc[feature.feature_name] || 0) + (feature.usage_count || 0)
-      return acc
-    }, {} as Record<string, number>) || {}
+    // Top features (completion status)
+    const completedCount = storyData?.filter(s => s.completed).length || 0
+    const inProgressCount = (storyData?.length || 0) - completedCount
 
-    const topFeatures = Object.entries(featureCounts)
-      .map(([feature_name, usage_count]) => ({ feature_name, usage_count }))
-      .sort((a, b) => b.usage_count - a.usage_count)
-      .slice(0, 5)
+    const topFeatures = [
+      { feature_name: 'Story Completion', usage_count: completedCount },
+      { feature_name: 'Story Started', usage_count: storyData?.length || 0 },
+      { feature_name: 'Choices Made', usage_count: stepData?.length || 0 },
+      { feature_name: 'In Progress', usage_count: inProgressCount }
+    ].sort((a, b) => b.usage_count - a.usage_count)
 
     setEngagementMetrics({
       totalEvents,

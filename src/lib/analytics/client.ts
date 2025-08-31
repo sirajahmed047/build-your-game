@@ -89,14 +89,11 @@ class AnalyticsClient {
     const deviceInfo = this.getDeviceInfo()
     
     try {
-      await supabase.rpc('start_user_session', {
-        p_user_id: this.userId,
-        p_session_id: this.sessionId,
-        p_device_type: deviceInfo.deviceType,
-        p_browser: deviceInfo.browser,
-        p_os: deviceInfo.os,
-        p_country: deviceInfo.country,
-        p_referrer: document.referrer || null
+      // For now, just log the session start - analytics functions not implemented yet
+      console.log('Analytics session started:', {
+        userId: this.userId,
+        sessionId: this.sessionId,
+        deviceInfo
       })
     } catch (error) {
       console.warn('Failed to start analytics session:', error)
@@ -147,13 +144,14 @@ class AnalyticsClient {
     }
 
     try {
-      await supabase.rpc('track_user_event', {
-        p_user_id: this.userId,
-        p_session_id: this.sessionId,
-        p_event_type: eventType,
-        p_event_data: eventData,
-        p_page_url: typeof window !== 'undefined' ? window.location.href : null,
-        p_user_agent: typeof window !== 'undefined' ? navigator.userAgent : null
+      // For now, just log the event - analytics functions not implemented yet
+      console.log('Analytics event tracked:', {
+        userId: this.userId,
+        sessionId: this.sessionId,
+        eventType,
+        eventData,
+        pageUrl: typeof window !== 'undefined' ? window.location.href : null,
+        userAgent: typeof window !== 'undefined' ? navigator.userAgent : null
       })
     } catch (error) {
       console.warn('Failed to track analytics event:', error)
@@ -199,8 +197,9 @@ class AnalyticsClient {
   // Session management
   async endSession() {
     try {
-      await supabase.rpc('end_user_session', {
-        p_session_id: this.sessionId
+      // For now, just log the session end - analytics functions not implemented yet
+      console.log('Analytics session ended:', {
+        sessionId: this.sessionId
       })
     } catch (error) {
       console.warn('Failed to end analytics session:', error)

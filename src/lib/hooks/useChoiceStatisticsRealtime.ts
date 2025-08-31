@@ -147,11 +147,22 @@ export function useChoiceStatisticsRealtime({
     return statistics.find(stat => stat.option_id === optionId)
   }, [statistics])
 
+  // Calculate rarity based on percentage
+  const calculateRarity = useCallback((percentage: number) => {
+    if (percentage < 5) return 'ultra-rare'
+    if (percentage < 15) return 'rare'
+    if (percentage < 35) return 'uncommon'
+    return 'common'
+  }, [])
+
   // Check if a choice is rare - memoized for performance
   const isRareChoice = useCallback((optionId: string) => {
     const stat = statistics.find(s => s.option_id === optionId)
-    return stat ? ['rare', 'ultra-rare'].includes(stat.rarity_level || 'common') : false
-  }, [statistics])
+    if (!stat) return false
+    const percentage = stat.percentage || 0
+    const rarity = calculateRarity(percentage)
+    return ['rare', 'ultra-rare'].includes(rarity)
+  }, [statistics, calculateRarity])
 
   // Get rarity distribution - memoized for performance
   const getRarityDistribution = useCallback(() => {
@@ -163,11 +174,13 @@ export function useChoiceStatisticsRealtime({
     }
 
     statistics.forEach(stat => {
-      distribution[stat.rarity_level as keyof typeof distribution]++
+      const percentage = stat.percentage || 0
+      const rarity = calculateRarity(percentage)
+      distribution[rarity as keyof typeof distribution]++
     })
 
     return distribution
-  }, [statistics])
+  }, [statistics, calculateRarity])
 
   return {
     statistics,

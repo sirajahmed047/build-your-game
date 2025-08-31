@@ -25,7 +25,7 @@ export interface StoryRun {
 
 export interface StoryStep {
   id: string
-  story_run_id: string
+  story_run_id: string | null
   step_number: number
   story_text: string
   choices: any // JSON data from database

@@ -171,7 +171,10 @@ export function useChoiceStatistics({
 
   const isRareChoice = useCallback((optionId: string) => {
     const stat = state.statistics.find(s => s.option_id === optionId)
-    return stat ? ['rare', 'ultra-rare'].includes(stat.rarity_level || 'common') : false
+    if (!stat) return false
+    const percentage = stat.percentage || 0
+    const rarity = percentage < 5 ? 'ultra-rare' : percentage < 15 ? 'rare' : percentage < 35 ? 'uncommon' : 'common'
+    return ['rare', 'ultra-rare'].includes(rarity)
   }, [state.statistics])
 
   // Memoize the wrapper functions to maintain stable references
