@@ -1,50 +1,17 @@
 import { supabase } from '@/lib/supabase/client'
 import { v4 as uuidv4 } from 'uuid'
+import { 
+  trackEvent, 
+  trackPageView, 
+  trackStoryEvent, 
+  trackConversion, 
+  setUserProperties,
+  type AnalyticsEvent,
+  type EventData 
+} from './google-analytics'
 
-// Event types for type safety
-export type AnalyticsEvent = 
-  | 'story_start'
-  | 'choice_made'
-  | 'story_complete'
-  | 'story_step_viewed'
-  | 'choice_statistics_viewed'
-  | 'choice_statistics_toggled'
-  | 'choice_with_traits_selected'
-  | 'trait_impact_viewed'
-  | 'endings_gallery_viewed'
-  | 'personality_profile_viewed'
-  | 'premium_feature_attempted'
-  | 'upgrade_clicked'
-  | 'page_view'
-  | 'session_start'
-  | 'session_end'
-
-export interface EventData {
-  // Story-related events
-  genre?: string
-  storyLength?: string
-  challenge?: string
-  stepNumber?: number
-  choiceSlug?: string
-  selectedOption?: string
-  endingTag?: string
-  endingRarity?: string
-  
-  // UI/UX events
-  featureName?: string
-  buttonText?: string
-  pageUrl?: string
-  referrer?: string
-  
-  // Session data
-  deviceType?: string
-  browser?: string
-  os?: string
-  country?: string
-  
-  // Custom properties
-  [key: string]: any
-}
+// Re-export types for easier importing
+export type { AnalyticsEvent, EventData } from './google-analytics'
 
 class AnalyticsClient {
   private sessionId: string
@@ -75,35 +42,40 @@ class AnalyticsClient {
       this.userId = user?.id || null
       this.isInitialized = true
       
-      // Start session tracking
-      await this.startSession()
+      // Set user properties in Google Analytics if user is signed in
+      if (this.userId) {
+        // Get user profile data for GA
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('subscription_tier, total_choices, created_at')
+          .eq('id', this.userId)
+          .single()
+
+        if (profile) {
+          setUserProperties(this.userId, {
+            subscription_tier: profile.subscription_tier || undefined,
+            stories_completed: Math.floor((profile.total_choices || 0) / 5), // Estimate
+            signup_date: profile.created_at || undefined
+          })
+        }
+      }
+      
+      // Track session start
+      this.track('session_start', {
+        session_id: this.sessionId,
+        user_type: this.userId ? 'authenticated' : 'anonymous',
+        ...this.getDeviceInfo()
+      })
     } catch (error) {
       console.warn('Analytics initialization failed:', error)
       this.isInitialized = true
     }
   }
 
-  private async startSession() {
-    if (typeof window === 'undefined') return
-
-    const deviceInfo = this.getDeviceInfo()
-    
-    try {
-      // For now, just log the session start - analytics functions not implemented yet
-      console.log('Analytics session started:', {
-        userId: this.userId,
-        sessionId: this.sessionId,
-        deviceInfo
-      })
-    } catch (error) {
-      console.warn('Failed to start analytics session:', error)
-    }
-  }
-
   private getDeviceInfo() {
     if (typeof window === 'undefined') {
       return {
-        deviceType: 'unknown',
+        device_type: 'unknown',
         browser: 'unknown',
         os: 'unknown',
         country: 'unknown'
@@ -113,7 +85,7 @@ class AnalyticsClient {
     const userAgent = navigator.userAgent
     
     // Simple device detection
-    const deviceType = /Mobile|Android|iPhone|iPad/.test(userAgent) ? 'mobile' : 'desktop'
+    const device_type = /Mobile|Android|iPhone|iPad/.test(userAgent) ? 'mobile' : 'desktop'
     
     // Simple browser detection
     let browser = 'unknown'
@@ -131,7 +103,7 @@ class AnalyticsClient {
     else if (userAgent.includes('iOS')) os = 'ios'
 
     return {
-      deviceType,
+      device_type,
       browser,
       os,
       country: 'unknown' // Could integrate with IP geolocation service
@@ -144,14 +116,12 @@ class AnalyticsClient {
     }
 
     try {
-      // For now, just log the event - analytics functions not implemented yet
-      console.log('Analytics event tracked:', {
-        userId: this.userId,
-        sessionId: this.sessionId,
-        eventType,
-        eventData,
-        pageUrl: typeof window !== 'undefined' ? window.location.href : null,
-        userAgent: typeof window !== 'undefined' ? navigator.userAgent : null
+      // Use Google Analytics tracking
+      trackEvent(eventType, {
+        ...eventData,
+        session_id: this.sessionId,
+        user_id: this.userId,
+        page_url: typeof window !== 'undefined' ? window.location.href : undefined
       })
     } catch (error) {
       console.warn('Failed to track analytics event:', error)
@@ -160,46 +130,51 @@ class AnalyticsClient {
 
   // Convenience methods for common events
   async trackStoryStart(genre: string, length: string, challenge: string) {
-    await this.track('story_start', { genre, storyLength: length, challenge })
+    trackStoryEvent('story_start', { genre, step_number: 1 })
   }
 
   async trackChoiceMade(choiceSlug: string, selectedOption: string, stepNumber: number, genre: string) {
-    await this.track('choice_made', { 
-      choiceSlug, 
-      selectedOption, 
-      stepNumber, 
-      genre 
+    trackStoryEvent('choice_made', { 
+      genre,
+      choice_slug: choiceSlug, 
+      selected_option: selectedOption, 
+      step_number: stepNumber
     })
   }
 
   async trackStoryComplete(endingTag: string, endingRarity: string, genre: string) {
-    await this.track('story_complete', { endingTag, endingRarity, genre })
+    trackStoryEvent('story_complete', { 
+      genre,
+      ending_tag: endingTag, 
+      ending_rarity: endingRarity 
+    })
   }
 
   async trackFeatureUsage(featureName: string, additionalData: EventData = {}) {
-    await this.track('choice_statistics_viewed', { featureName, ...additionalData })
+    await this.track('choice_statistics_viewed', { feature_name: featureName, ...additionalData })
   }
 
   async trackPremiumFeatureAttempt(featureName: string) {
-    await this.track('premium_feature_attempted', { featureName })
+    trackConversion('premium_attempt', { feature_name: featureName })
   }
 
   async trackUpgradeClick(buttonText: string, pageUrl?: string) {
-    await this.track('upgrade_clicked', { buttonText, pageUrl })
+    trackConversion('upgrade_click', { button_text: buttonText, page_url: pageUrl })
   }
 
   async trackPageView(pageUrl?: string) {
-    await this.track('page_view', { 
-      pageUrl: pageUrl || (typeof window !== 'undefined' ? window.location.href : undefined)
-    })
+    const url = pageUrl || (typeof window !== 'undefined' ? window.location.href : undefined)
+    if (url) {
+      trackPageView(url)
+    }
   }
 
   // Session management
   async endSession() {
     try {
-      // For now, just log the session end - analytics functions not implemented yet
-      console.log('Analytics session ended:', {
-        sessionId: this.sessionId
+      await this.track('session_end', {
+        session_id: this.sessionId,
+        session_duration: Date.now() - parseInt(sessionStorage.getItem('session_start_time') || '0')
       })
     } catch (error) {
       console.warn('Failed to end analytics session:', error)
@@ -209,6 +184,11 @@ class AnalyticsClient {
   // Update user context when auth state changes
   updateUser(userId: string | null) {
     this.userId = userId
+    
+    // Update Google Analytics user properties
+    if (userId) {
+      setUserProperties(userId, {})
+    }
   }
 
   // Get current session info

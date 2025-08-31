@@ -41,10 +41,10 @@ export function validateProductionConfig(): {
     warnings.push('NODE_ENV is not set to production');
   }
 
-  // Check PostHog configuration
-  const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-  if (!posthogKey || posthogKey.includes('placeholder')) {
-    warnings.push('PostHog analytics not configured (optional for MVP)');
+  // Check Google Analytics configuration (optional)
+  const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  if (!gaMeasurementId || !gaMeasurementId.startsWith('G-')) {
+    warnings.push('Google Analytics not configured (optional for MVP)');
   }
 
   return {
