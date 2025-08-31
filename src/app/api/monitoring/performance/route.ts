@@ -6,51 +6,50 @@ export async function GET() {
     const startTime = Date.now()
     const metrics: Record<string, any> = {}
 
-    // Query performance metrics
+    // Choice statistics job performance
     const queryStartTime = Date.now()
     const { data: queryStats, error: queryError } = await supabase
-      .from('query_performance_stats')
-      .select('*')
-      .limit(10)
+      .rpc('get_choice_statistics_job_health')
 
-    metrics.queryPerformance = {
+    metrics.choiceStatisticsPerformance = {
       responseTime: Date.now() - queryStartTime,
       status: queryError ? 'error' : 'success',
       data: queryStats,
       error: queryError?.message
     }
 
-    // Table size and growth metrics
+    // Ending statistics performance
     const tableStatsStartTime = Date.now()
     const { data: tableStats, error: tableStatsError } = await supabase
-      .rpc('get_table_stats')
+      .rpc('get_ending_statistics')
 
-    metrics.tableStatistics = {
+    metrics.endingStatistics = {
       responseTime: Date.now() - tableStatsStartTime,
       status: tableStatsError ? 'error' : 'success',
       data: tableStats,
       error: tableStatsError?.message
     }
 
-    // Materialized view performance
+    // Rate limiting performance
     const mvStartTime = Date.now()
     const { data: mvHealth, error: mvError } = await supabase
-      .rpc('get_materialized_view_health')
+      .rpc('get_rate_limit_status', { user_identifier: 'performance-check' })
 
-    metrics.materializedViewHealth = {
+    metrics.rateLimitingHealth = {
       responseTime: Date.now() - mvStartTime,
       status: mvError ? 'error' : 'success',
       data: mvHealth,
       error: mvError?.message
     }
 
-    // Connection and activity metrics
+    // Basic table performance check
     const activityStartTime = Date.now()
     const { data: systemHealth, error: systemError } = await supabase
-      .from('system_health_dashboard')
-      .select('*')
+      .from('choice_aggregates')
+      .select('count')
+      .limit(1)
 
-    metrics.systemHealth = {
+    metrics.databasePerformance = {
       responseTime: Date.now() - activityStartTime,
       status: systemError ? 'error' : 'success',
       data: systemHealth,

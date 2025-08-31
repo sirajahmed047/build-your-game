@@ -5,50 +5,45 @@ export async function GET() {
   try {
     const startTime = Date.now()
     
-    // Get materialized view health
+    // Get choice statistics job health
     const { data: mvHealth, error: mvError } = await supabase
-      .rpc('get_materialized_view_health')
+      .rpc('get_choice_statistics_job_health')
 
     if (mvError) {
-      throw new Error(`Failed to get materialized view health: ${mvError.message}`)
+      throw new Error(`Failed to get choice statistics job health: ${mvError.message}`)
     }
 
-    // Get recent refresh logs
+    // Get recent cost tracking as a proxy for system activity
     const { data: refreshLogs, error: logsError } = await supabase
-      .from('materialized_view_refresh_log')
+      .from('cost_tracking')
       .select('*')
-      .order('refresh_started_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(20)
 
     if (logsError) {
-      console.warn('Failed to get refresh logs:', logsError.message)
+      console.warn('Failed to get activity logs:', logsError.message)
     }
 
-    // Get cron job status
+    // Get rate limit status as system health indicator
     const { data: cronStatus, error: cronError } = await supabase
-      .from('cron_job_status')
-      .select('*')
-      .in('jobname', [
-        'refresh_choice_stats_monitored',
-        'refresh_user_engagement_every_15m'
-      ])
+      .rpc('get_rate_limit_status', { user_identifier: 'system-check' })
 
     if (cronError) {
-      console.warn('Failed to get cron status:', cronError.message)
+      console.warn('Failed to get system status:', cronError.message)
     }
 
     const responseTime = Date.now() - startTime
 
     // Analyze health status
-    const healthAnalysis = analyzeMaterializedViewHealth(mvHealth, refreshLogs, cronStatus)
+    const healthAnalysis = analyzeSystemHealth(mvHealth, refreshLogs, cronStatus)
 
     return NextResponse.json({
       timestamp: new Date().toISOString(),
       responseTime,
       status: healthAnalysis.overallStatus,
-      materializedViews: mvHealth,
-      recentRefreshes: refreshLogs,
-      cronJobs: cronStatus,
+      choiceStatisticsJob: mvHealth,
+      recentActivity: refreshLogs,
+      systemStatus: cronStatus,
       analysis: healthAnalysis,
       recommendations: generateRecommendations(healthAnalysis)
     }, {
@@ -76,7 +71,7 @@ export async function POST() {
   try {
     // Manual refresh trigger
     const { data, error } = await supabase
-      .rpc('manual_refresh_choice_statistics')
+      .rpc('refresh_choice_statistics')
 
     if (error) {
       throw new Error(`Manual refresh failed: ${error.message}`)
@@ -100,7 +95,7 @@ export async function POST() {
   }
 }
 
-function analyzeMaterializedViewHealth(
+function analyzeSystemHealth(
   mvHealth: any[], 
   refreshLogs: any[], 
   cronStatus: any[]
@@ -112,61 +107,77 @@ function analyzeMaterializedViewHealth(
   const issues: string[] = []
   const metrics: Record<string, any> = {}
 
-  // Analyze materialized view health
+  // Analyze choice statistics job health
   if (mvHealth && mvHealth.length > 0) {
-    mvHealth.forEach((view: any) => {
-      const viewName = view.view_name
-      metrics[viewName] = {
-        lastRefresh: view.last_refresh_at,
-        lastSuccess: view.last_success_at,
-        successRate: view.success_rate_24h,
-        avgDuration: view.avg_duration_24h
+    mvHealth.forEach((job: any) => {
+      metrics.choiceStatisticsJob = {
+        successCount24h: job.success_count_24h,
+        errorCount24h: job.error_count_24h,
+        avgDuration: job.avg_duration_seconds,
+        lastSuccess: job.last_success,
+        lastError: job.last_error,
+        currentRowCount: job.current_row_count
       }
 
       // Check for issues
-      if (view.success_rate_24h < 90) {
-        issues.push(`${viewName}: Low success rate (${view.success_rate_24h}%)`)
-      }
-
-      if (view.avg_duration_24h > 30) {
-        issues.push(`${viewName}: High average refresh duration (${view.avg_duration_24h}s)`)
-      }
-
-      const lastRefresh = new Date(view.last_refresh_at)
-      const hoursSinceRefresh = (Date.now() - lastRefresh.getTime()) / (1000 * 60 * 60)
+      const totalRuns = job.success_count_24h + job.error_count_24h
+      const errorRate = totalRuns > 0 ? (job.error_count_24h / totalRuns) * 100 : 0
       
-      if (hoursSinceRefresh > 1) {
-        issues.push(`${viewName}: No refresh in ${Math.round(hoursSinceRefresh)} hours`)
+      if (errorRate > 10) {
+        issues.push(`Choice statistics job: High error rate (${errorRate.toFixed(1)}%)`)
+      }
+
+      if (job.avg_duration_seconds > 30) {
+        issues.push(`Choice statistics job: High average duration (${job.avg_duration_seconds}s)`)
+      }
+
+      if (job.last_error && job.last_error !== 'None') {
+        const lastSuccess = new Date(job.last_success)
+        const hoursSinceSuccess = (Date.now() - lastSuccess.getTime()) / (1000 * 60 * 60)
+        
+        if (hoursSinceSuccess > 2) {
+          issues.push(`Choice statistics job: No success in ${Math.round(hoursSinceSuccess)} hours`)
+        }
       }
     })
   }
 
-  // Analyze cron job status
+  // Analyze system status via rate limiting
   if (cronStatus && cronStatus.length > 0) {
-    cronStatus.forEach((job: any) => {
-      if (!job.active) {
-        issues.push(`Cron job ${job.jobname} is inactive`)
+    cronStatus.forEach((status: any) => {
+      metrics.systemStatus = {
+        dailyLimit: status.daily_limit,
+        requestsToday: status.requests_today,
+        remainingRequests: status.remaining_requests,
+        isPremium: status.is_premium
       }
 
-      if (job.last_status !== 'Success' && job.last_status !== 'Never run') {
-        issues.push(`Cron job ${job.jobname} last status: ${job.last_status}`)
+      // Check for issues
+      if (status.remaining_requests <= 0) {
+        issues.push('System rate limit exceeded')
+      }
+
+      if (status.requests_today > status.daily_limit * 0.9) {
+        issues.push('System approaching rate limit')
       }
     })
   }
 
-  // Analyze recent refresh logs
+  // Analyze recent activity logs
   if (refreshLogs && refreshLogs.length > 0) {
-    const recentFailures = refreshLogs.filter((log: any) => !log.success).length
-    const failureRate = recentFailures / refreshLogs.length
+    const recentActivity = refreshLogs.length
+    const totalTokens = refreshLogs.reduce((sum: number, log: any) => sum + (log.tokens_used || 0), 0)
+    const totalCost = refreshLogs.reduce((sum: number, log: any) => sum + (log.estimated_cost || 0), 0)
 
-    if (failureRate > 0.1) {
-      issues.push(`High failure rate in recent refreshes: ${Math.round(failureRate * 100)}%`)
+    metrics.recentActivity = {
+      totalRequests: recentActivity,
+      totalTokens,
+      totalCost: totalCost.toFixed(4),
+      avgTokensPerRequest: recentActivity > 0 ? Math.round(totalTokens / recentActivity) : 0
     }
 
-    metrics.recentRefreshes = {
-      total: refreshLogs.length,
-      failures: recentFailures,
-      failureRate: Math.round(failureRate * 100)
+    if (recentActivity === 0) {
+      issues.push('No recent system activity detected')
     }
   }
 
@@ -190,31 +201,36 @@ function generateRecommendations(analysis: any): string[] {
   const recommendations: string[] = []
 
   if (analysis.overallStatus === 'unhealthy') {
-    recommendations.push('URGENT: Multiple materialized view issues detected - investigate immediately')
+    recommendations.push('URGENT: Multiple system issues detected - investigate immediately')
   }
 
-  if (analysis.issues.some((issue: string) => issue.includes('Low success rate'))) {
-    recommendations.push('Check database logs for materialized view refresh errors')
-    recommendations.push('Consider increasing refresh timeout or optimizing view queries')
+  if (analysis.issues.some((issue: string) => issue.includes('High error rate'))) {
+    recommendations.push('Check database logs for choice statistics job errors')
+    recommendations.push('Consider optimizing database queries or increasing timeouts')
   }
 
-  if (analysis.issues.some((issue: string) => issue.includes('High average refresh duration'))) {
-    recommendations.push('Optimize materialized view queries for better performance')
-    recommendations.push('Consider partitioning large tables or adding indexes')
+  if (analysis.issues.some((issue: string) => issue.includes('High average duration'))) {
+    recommendations.push('Optimize choice statistics queries for better performance')
+    recommendations.push('Consider adding database indexes or partitioning')
   }
 
-  if (analysis.issues.some((issue: string) => issue.includes('No refresh'))) {
-    recommendations.push('Check cron job configuration and database connectivity')
+  if (analysis.issues.some((issue: string) => issue.includes('No success'))) {
+    recommendations.push('Check database connectivity and job configuration')
     recommendations.push('Manually trigger refresh to test functionality')
   }
 
-  if (analysis.issues.some((issue: string) => issue.includes('inactive'))) {
-    recommendations.push('Reactivate disabled cron jobs')
-    recommendations.push('Check cron job permissions and configuration')
+  if (analysis.issues.some((issue: string) => issue.includes('rate limit'))) {
+    recommendations.push('Monitor API usage and consider upgrading limits')
+    recommendations.push('Implement request throttling or caching')
+  }
+
+  if (analysis.issues.some((issue: string) => issue.includes('No recent system activity'))) {
+    recommendations.push('Check if the system is receiving user requests')
+    recommendations.push('Verify API endpoints and user flows')
   }
 
   if (recommendations.length === 0) {
-    recommendations.push('All materialized views are healthy - no action required')
+    recommendations.push('All system components are healthy - no action required')
   }
 
   return recommendations

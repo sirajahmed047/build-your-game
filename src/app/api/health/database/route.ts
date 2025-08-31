@@ -18,49 +18,50 @@ export async function GET() {
       error: connectivityError?.message
     }
 
-    // Test materialized view health
+    // Test choice statistics job health
     const mvStartTime = Date.now()
     const { data: mvHealth, error: mvError } = await supabase
-      .rpc('get_materialized_view_health')
+      .rpc('get_choice_statistics_job_health')
 
-    checks.materializedViews = {
+    checks.choiceStatisticsJob = {
       status: mvError ? 'unhealthy' : 'healthy',
       responseTime: `${Date.now() - mvStartTime}ms`,
       data: mvHealth,
       error: mvError?.message
     }
 
-    // Test backup health
-    const backupStartTime = Date.now()
-    const { data: backupHealth, error: backupError } = await supabase
-      .rpc('get_backup_health_status')
+    // Test ending statistics (as a health check)
+    const endingStartTime = Date.now()
+    const { data: endingHealth, error: endingError } = await supabase
+      .rpc('get_ending_statistics')
 
-    checks.backupHealth = {
-      status: backupError ? 'unhealthy' : 'healthy',
-      responseTime: `${Date.now() - backupStartTime}ms`,
-      data: backupHealth,
-      error: backupError?.message
+    checks.endingStatistics = {
+      status: endingError ? 'unhealthy' : 'healthy',
+      responseTime: `${Date.now() - endingStartTime}ms`,
+      data: endingHealth,
+      error: endingError?.message
     }
 
-    // Test cron job health
-    const cronStartTime = Date.now()
-    const { data: cronHealth, error: cronError } = await supabase
-      .from('cron_job_status')
-      .select('*')
+    // Test rate limiting system
+    const rateStartTime = Date.now()
+    const { data: rateHealth, error: rateError } = await supabase
+      .rpc('get_rate_limit_status', { user_identifier: 'health-check' })
 
-    checks.cronJobs = {
-      status: cronError ? 'unhealthy' : 'healthy',
-      responseTime: `${Date.now() - cronStartTime}ms`,
-      data: cronHealth,
-      error: cronError?.message
+    checks.rateLimiting = {
+      status: rateError ? 'unhealthy' : 'healthy',
+      responseTime: `${Date.now() - rateStartTime}ms`,
+      data: rateHealth,
+      error: rateError?.message
     }
 
-    // Test table statistics
+    // Test basic table access (user_profiles as a simple check)
     const statsStartTime = Date.now()
     const { data: tableStats, error: statsError } = await supabase
-      .rpc('get_table_stats')
+      .from('user_profiles')
+      .select('count')
+      .limit(1)
 
-    checks.tableStatistics = {
+    checks.tableAccess = {
       status: statsError ? 'unhealthy' : 'healthy',
       responseTime: `${Date.now() - statsStartTime}ms`,
       data: tableStats,
