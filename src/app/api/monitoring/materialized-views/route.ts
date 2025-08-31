@@ -35,7 +35,7 @@ export async function GET() {
     const responseTime = Date.now() - startTime
 
     // Analyze health status
-    const healthAnalysis = analyzeSystemHealth(mvHealth, refreshLogs, cronStatus)
+    const healthAnalysis = analyzeSystemHealth(mvHealth || [], refreshLogs || [], cronStatus || [])
 
     return NextResponse.json({
       timestamp: new Date().toISOString(),
