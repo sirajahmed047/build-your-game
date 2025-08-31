@@ -178,3 +178,13 @@ pnpm-lock.yaml
 # Build artifacts
 *.tsbuildinfo
 node_modules
+
+# Debug and test scripts (created during development)
+debug-supabase.js
+check-profiles.js
+test-trigger.js
+check-trigger-status.js
+admin-test.js
+final-verification.js
+verify-trigger.js
+clean_schema.sql
