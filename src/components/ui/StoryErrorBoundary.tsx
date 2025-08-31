@@ -68,7 +68,7 @@ export class StoryErrorBoundary extends Component<Props, State> {
             </Button>
             <Button 
               onClick={() => window.location.reload()} 
-              variant="default"
+              variant="primary"
             >
               Restart Story
             </Button>
