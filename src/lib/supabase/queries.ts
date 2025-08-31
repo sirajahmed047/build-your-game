@@ -442,28 +442,38 @@ export class UserProfileQueries {
 // Choice Statistics Operations
 export class ChoiceStatsQueries {
   static async incrementImpressions(choiceSlug: string, optionId: string, genre: string): Promise<void> {
-    const { error } = await supabase.rpc('increment_choice_impressions' as any, {
-      p_choice_slug: choiceSlug,
-      p_option_id: optionId,
-      p_genre: genre
-    } as any)
+    try {
+      const { error } = await supabase.rpc('increment_choice_impressions' as any, {
+        p_choice_slug: choiceSlug,
+        p_option_id: optionId,
+        p_genre: genre
+      } as any)
 
-    if (error) {
-      console.error('Error incrementing impressions:', error)
-      // Don't throw - this is non-critical for user experience
+      if (error) {
+        console.error('Error incrementing impressions:', error)
+        // Don't throw - this is non-critical for user experience
+      }
+    } catch (error) {
+      console.error('Error calling increment_choice_impressions:', error)
+      // Silently fail to not break story flow
     }
   }
 
   static async incrementSelections(choiceSlug: string, optionId: string, genre: string): Promise<void> {
-    const { error } = await supabase.rpc('increment_choice_selections' as any, {
-      p_choice_slug: choiceSlug,
-      p_option_id: optionId,
-      p_genre: genre
-    } as any)
+    try {
+      const { error } = await supabase.rpc('increment_choice_selections' as any, {
+        p_choice_slug: choiceSlug,
+        p_option_id: optionId,
+        p_genre: genre
+      } as any)
 
-    if (error) {
-      console.error('Error incrementing selections:', error)
-      // Don't throw - this is non-critical for user experience
+      if (error) {
+        console.error('Error incrementing selections:', error)
+        // Don't throw - this is non-critical for user experience
+      }
+    } catch (error) {
+      console.error('Error calling increment_choice_selections:', error)
+      // Silently fail to not break story flow
     }
   }
 

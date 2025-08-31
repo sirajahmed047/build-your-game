@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/auth/AuthProvider'
 import { AuthButton } from '@/components/auth/AuthButton'
 import { useStorySession } from '@/lib/hooks/useStorySession'
@@ -33,6 +33,9 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
   const [achievementMessage, setAchievementMessage] = useState<string | null>(null)
   const [showSavePoints, setShowSavePoints] = useState(false)
   const [showStoryHistory, setShowStoryHistory] = useState(false)
+  
+  // Track last saved step to prevent duplicate saves
+  const lastSavedStepRef = useRef<{ storyRunId: string; stepNumber: number } | null>(null)
 
   const {
     currentSession,
@@ -129,24 +132,49 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
 
   // Auto-save progress when story state changes (Requirement 6.1)
   useEffect(() => {
-    if (currentSession && currentSession.currentStep && gameState && personalityTraits) {
+    if (currentSession?.currentStep && gameState && personalityTraits) {
       const currentStoryRunId = getCurrentStoryRunId()
       if (currentStoryRunId) {
-        setCurrentStory(currentStoryRunId)
+        // Check if we already saved this step to prevent duplicate saves
+        const currentStep = currentSession.currentStep
+        const lastSaved = lastSavedStepRef.current
         
-        // Auto-save at each decision point
-        autoSaveProgress(
-          currentStoryRunId,
-          currentSession.currentStep.step_number,
-          gameState,
-          personalityTraits,
-          storyText || '',
-          availableChoices,
-          `Step ${currentSession.currentStep.step_number}: ${storyText?.substring(0, 50)}...`
-        )
+        if (!lastSaved || 
+            lastSaved.storyRunId !== currentStoryRunId || 
+            lastSaved.stepNumber !== currentStep.step_number) {
+          
+          setCurrentStory(currentStoryRunId)
+          
+          // Auto-save at each decision point
+          autoSaveProgress(
+            currentStoryRunId,
+            currentStep.step_number,
+            gameState,
+            personalityTraits,
+            storyText || '',
+            availableChoices,
+            `Step ${currentStep.step_number}: ${storyText?.substring(0, 50)}...`
+          )
+          
+          // Update ref to track what we saved
+          lastSavedStepRef.current = {
+            storyRunId: currentStoryRunId,
+            stepNumber: currentStep.step_number
+          }
+        }
       }
     }
-  }, [currentSession, gameState, personalityTraits, storyText, availableChoices, autoSaveProgress, setCurrentStory, getCurrentStoryRunId])
+  }, [
+    currentSession?.currentStep?.step_number, // Only trigger on step changes
+    currentSession?.storyRun?.id, // Or story run changes
+    gameState,
+    personalityTraits,
+    storyText,
+    availableChoices,
+    autoSaveProgress,
+    setCurrentStory,
+    getCurrentStoryRunId
+  ])
 
   // Choice statistics tracking
   const {

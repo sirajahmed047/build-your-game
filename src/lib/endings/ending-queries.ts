@@ -230,7 +230,7 @@ export class EndingCollectionQueries {
         // Get completion count for this ending
         const { count } = await supabase
           .from('story_runs')
-          .select('*', { count: 'exact', head: true })
+          .select('*', { count: 'exact' })
           .eq('ending_tag', ending.ending_tag)
           .eq('completed', true)
 
@@ -365,7 +365,7 @@ export class EndingCollectionQueries {
     try {
       const { count, error } = await supabase
         .from('ending_catalog')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'exact' })
 
       if (error) {
         console.error('Error getting total endings count:', error)
@@ -407,7 +407,7 @@ export class EndingCatalogQueries {
       for (const ending of endingsList) {
         const { count } = await supabase
           .from('story_runs')
-          .select('*', { count: 'exact', head: true })
+          .select('*', { count: 'exact' })
           .eq('ending_tag', ending.ending_tag)
           .eq('completed', true)
 
