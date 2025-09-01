@@ -170,8 +170,7 @@ src/test/
 # Config files that might contain sensitive data
 lighthouse.config.js
 
-# Lock files (let Netlify handle dependency resolution)
-package-lock.json
+# Lock files for other package managers (keep package-lock.json for npm)
 yarn.lock
 pnpm-lock.yaml
 
