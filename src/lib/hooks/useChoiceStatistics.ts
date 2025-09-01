@@ -136,11 +136,20 @@ export function useChoiceStatistics({
     if (!choiceSlug || !genre) return
 
     const refreshInterval = setInterval(() => {
-      loadStatistics(choiceSlug, genre)
-    }, 60000) // Refresh every minute
+      // Use current ref to avoid dependency issues
+      if (loadStatisticsRef.current) {
+        loadStatisticsRef.current(choiceSlug, genre)
+      }
+    }, 300000) // Refresh every 5 minutes instead of 1 minute to reduce load
 
     return () => clearInterval(refreshInterval)
-  }, [choiceSlug, genre, loadStatistics])
+  }, [choiceSlug, genre])
+
+  // Keep ref updated with latest loadStatistics function
+  const loadStatisticsRef = useRef(loadStatistics)
+  useEffect(() => {
+    loadStatisticsRef.current = loadStatistics
+  }, [loadStatistics])
 
   // Clear tracking when parameters change to prevent stale data
   useEffect(() => {

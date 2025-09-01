@@ -110,9 +110,9 @@ export function useChoiceStatistics(choiceSlug: string, genre: string) {
     queryKey: queryKeys.choiceStatistics(choiceSlug, genre),
     queryFn: () => ChoiceStatsQueries.getChoiceStatistics(choiceSlug, genre),
     enabled: !!choiceSlug && !!genre,
-    staleTime: 2 * 60 * 1000, // 2 minutes - stats update every 5 minutes via cron
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 3 * 60 * 1000, // Refetch every 3 minutes for live updates
+    staleTime: 5 * 60 * 1000, // 5 minutes - stats update every 5 minutes via cron
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: false, // Disable automatic refetching to reduce load - rely on manual refresh instead
   })
 }
 

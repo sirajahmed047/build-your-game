@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '@/components/auth/AuthProvider'
 import { AuthButton } from '@/components/auth/AuthButton'
 import { useStorySession } from '@/lib/hooks/useStorySession'
@@ -186,18 +186,22 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
     choiceSlug: currentSession?.currentStep?.choice_slug || undefined,
     genre: currentSession?.storyRun.genre,
     choices: availableChoices,
-    onStatisticsLoaded: (stats) => {
-      // Auto-show stats if there are interesting insights
-      const hasRareChoices = stats.some(stat => {
+    // Remove onStatisticsLoaded callback to prevent infinite re-renders
+  })
+
+  // Auto-show stats if there are rare choices (separated to prevent callback issues)
+  useEffect(() => {
+    if (choiceStats && choiceStats.length > 0 && !showChoiceStats) {
+      const hasRareChoices = choiceStats.some(stat => {
         const percentage = stat.percentage || 0
         const rarity = percentage < 5 ? 'ultra-rare' : percentage < 15 ? 'rare' : percentage < 35 ? 'uncommon' : 'common'
         return ['rare', 'ultra-rare'].includes(rarity)
       })
-      if (hasRareChoices && !showChoiceStats) {
+      if (hasRareChoices) {
         setShowChoiceStats(true)
       }
     }
-  })
+  }, [choiceStats, showChoiceStats])
 
   const handleStartStory = (request: StoryGenerationRequest) => {
     startNewStory({
@@ -207,22 +211,27 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
     })
   }
 
-  const handleChoiceSelect = async (choice: Choice) => {
+  const handleChoiceSelect = useCallback(async (choice: Choice) => {
     if (!canMakeChoice) return
     
     setSelectedChoiceId(choice.id)
     
-    // Track the selection for statistics
-    if (currentSession?.currentStep?.choice_slug && currentSession?.storyRun.genre) {
-      await trackSelection(
-        currentSession.currentStep.choice_slug,
-        choice.id,
-        currentSession.storyRun.genre
-      )
+    // Track the selection for statistics (with error handling to prevent blocking)
+    try {
+      if (currentSession?.currentStep?.choice_slug && currentSession?.storyRun.genre) {
+        await trackSelection(
+          currentSession.currentStep.choice_slug,
+          choice.id,
+          currentSession.storyRun.genre
+        )
+      }
+    } catch (error) {
+      console.warn('Failed to track choice selection:', error)
+      // Don't block story progression on statistics tracking failure
     }
     
     selectChoice(choice.id, choice.slug)
-  }
+  }, [canMakeChoice, currentSession, trackSelection, selectChoice])
 
   const renderStoryStart = () => (
     <div className="max-w-4xl mx-auto">

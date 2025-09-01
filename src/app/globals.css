@@ -2,17 +2,91 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply text-neutral-800 bg-gradient-sage;
+  }
+}
+
+@layer components {
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-white/60 backdrop-blur-sm border border-white/20;
+  }
+  
+  .glass-dark {
+    @apply bg-neutral-900/60 backdrop-blur-sm border border-white/10;
+  }
+  
+  /* Card component variations */
+  .card-soft {
+    @apply bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-white/40;
+  }
+  
+  .card-floating {
+    @apply bg-white/90 backdrop-blur-md rounded-2xl shadow-soft-lg border border-white/50 transition-all duration-300 hover:shadow-2xl hover:translate-y-[-2px];
+  }
+  
+  /* Button styles */
+  .btn-primary {
+    @apply bg-gradient-to-r from-sage-500 to-ocean-500 hover:from-sage-600 hover:to-ocean-600 text-white shadow-soft transition-all duration-300 hover:shadow-soft-lg hover:scale-105;
+  }
+  
+  .btn-secondary {
+    @apply bg-gradient-to-r from-warm-400 to-warm-500 hover:from-warm-500 hover:to-warm-600 text-white shadow-soft transition-all duration-300 hover:shadow-soft-lg;
+  }
+  
+  .btn-ghost {
+    @apply bg-white/70 hover:bg-white/90 text-neutral-700 hover:text-neutral-900 backdrop-blur-sm border border-white/30 hover:border-white/50 transition-all duration-300;
+  }
+  
+  /* Text gradients */
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-sage-600 to-ocean-600 bg-clip-text text-transparent;
+  }
+  
+  .text-gradient-warm {
+    @apply bg-gradient-to-r from-warm-600 to-accent-coral bg-clip-text text-transparent;
+  }
+  
+  /* Interactive elements */
+  .interactive-card {
+    @apply card-soft hover:shadow-soft-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer;
+  }
+  
+  /* Focus styles */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-sage-400 focus:ring-offset-2 focus:ring-offset-white/50;
+  }
+}
+
 @layer utilities {
   .animate-slide-in {
-    animation: slideIn 0.3s ease-out;
+    animation: slideIn 0.4s ease-out;
   }
   
   .animate-fade-in {
-    animation: fadeIn 0.5s ease-out;
+    animation: fadeIn 0.6s ease-out;
   }
   
   .animate-scale-in {
-    animation: scaleIn 0.2s ease-out;
+    animation: scaleIn 0.4s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-pulse-soft {
+    animation: pulseSoft 2s ease-in-out infinite;
   }
 }
 
@@ -30,9 +104,22 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -47,36 +134,60 @@
   }
 }
 
-/* Custom scrollbar */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pulseSoft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Custom scrollbar with soothing colors */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f6f7f6;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: #a1b4a1;
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #7a947a;
 }
 
-/* Focus styles */
-.focus-visible\:ring-2:focus-visible {
-  outline: 2px solid transparent;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 2px #3b82f6;
-}
-
-/* Smooth transitions */
+/* Smooth transitions for all interactive elements */
 * {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  transition-duration: 200ms;
+}
+
+/* Selection styles */
+::selection {
+  background-color: #a1b4a1;
+  color: white;
+}
+
+/* Focus styles for accessibility */
+.focus-visible\:ring-2:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px #5f7a5f;
 }
 
 /* Line clamp utilities */

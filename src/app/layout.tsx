@@ -46,9 +46,9 @@ export default function RootLayout({
         <ErrorBoundary>
           <QueryProvider>
             <AuthProvider>
-              <div className="min-h-screen bg-gray-50">
+              <div className="min-h-screen bg-gradient-sunset">
                 <Navigation />
-                <main>
+                <main className="relative">
                   {children}
                 </main>
               </div>

@@ -12,14 +12,14 @@ interface UseChoiceStatisticsRealtimeOptions {
   choiceSlug?: string
   genre?: string
   enabled?: boolean
-  pollInterval?: number // Fallback polling interval in ms
+  pollInterval?: number // Fallback polling interval in ms (default: 5 minutes)
 }
 
 export function useChoiceStatisticsRealtime({
   choiceSlug,
   genre,
   enabled = true,
-  pollInterval = 30000 // 30 seconds fallback polling
+  pollInterval = 300000 // 5 minutes fallback polling - much less aggressive
 }: UseChoiceStatisticsRealtimeOptions = {}) {
   const [statistics, setStatistics] = useState<ChoiceStatistic[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -81,8 +81,10 @@ export function useChoiceStatisticsRealtime({
         },
         (payload) => {
           console.log('Choice aggregates updated:', payload)
-          // Reload statistics when aggregates change - use current loadStatistics
-          loadStatistics()
+          // Reload statistics when aggregates change - use ref to avoid dependency issues
+          if (loadStatisticsRef.current) {
+            loadStatisticsRef.current()
+          }
         }
       )
 
@@ -98,7 +100,7 @@ export function useChoiceStatisticsRealtime({
       channelRef.current = null
       setIsRealtimeConnected(false)
     }
-  }, [enabled, choiceSlug, genre, loadStatistics])
+  }, [enabled, choiceSlug, genre])
 
   // Setup fallback polling when realtime is not connected
   useEffect(() => {

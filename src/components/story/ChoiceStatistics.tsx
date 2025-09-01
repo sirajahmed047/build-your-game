@@ -43,7 +43,7 @@ export function ChoiceStatistics({
     if (choiceSlug && genre) {
       loadStatistics()
     }
-  }, [choiceSlug, genre, onStatisticsLoaded])
+  }, [choiceSlug, genre]) // Remove onStatisticsLoaded from dependencies to prevent infinite re-renders
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {

@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       choice_aggregates: {
@@ -89,6 +64,62 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      premium_purchases: {
+        Row: {
+          amount_paid: number
+          created_at: string | null
+          currency: string
+          days_purchased: number
+          expires_at: string
+          id: string
+          package_type: string
+          payment_id: string
+          payment_status: string
+          paypal_capture_id: string | null
+          paypal_order_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string | null
+          currency?: string
+          days_purchased: number
+          expires_at: string
+          id?: string
+          package_type: string
+          payment_id: string
+          payment_status?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string | null
+          currency?: string
+          days_purchased?: number
+          expires_at?: string
+          id?: string
+          package_type?: string
+          payment_id?: string
+          payment_status?: string
+          paypal_capture_id?: string | null
+          paypal_order_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premium_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_runs: {
         Row: {
@@ -193,6 +224,9 @@ export type Database = {
           email: string | null
           id: string
           personality_traits: Json | null
+          premium_days_purchased: number | null
+          premium_expires_at: string | null
+          premium_purchased_at: string | null
           subscription_tier: string | null
           total_choices: number | null
           updated_at: string
@@ -204,6 +238,9 @@ export type Database = {
           email?: string | null
           id: string
           personality_traits?: Json | null
+          premium_days_purchased?: number | null
+          premium_expires_at?: string | null
+          premium_purchased_at?: string | null
           subscription_tier?: string | null
           total_choices?: number | null
           updated_at?: string
@@ -215,6 +252,9 @@ export type Database = {
           email?: string | null
           id?: string
           personality_traits?: Json | null
+          premium_days_purchased?: number | null
+          premium_expires_at?: string | null
+          premium_purchased_at?: string | null
           subscription_tier?: string | null
           total_choices?: number | null
           updated_at?: string
@@ -263,6 +303,14 @@ export type Database = {
       }
     }
     Functions: {
+      activate_premium: {
+        Args: { days: number; payment_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
+      check_premium_status: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
       get_choice_statistics_job_health: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -280,6 +328,10 @@ export type Database = {
           total_endings: number
         }[]
       }
+      get_premium_days_remaining: {
+        Args: { user_uuid: string }
+        Returns: number
+      }
       get_rate_limit_status: {
         Args: { user_identifier: string }
         Returns: {
@@ -290,6 +342,18 @@ export type Database = {
           status: string
         }[]
       }
+      get_user_subscription_tier: {
+        Args: { user_uuid: string }
+        Returns: string
+      }
+      increment_choice_impressions: {
+        Args: { p_choice_slug: string; p_genre: string; p_option_id: string }
+        Returns: undefined
+      }
+      increment_choice_selections: {
+        Args: { p_choice_slug: string; p_genre: string; p_option_id: string }
+        Returns: undefined
+      }
       refresh_choice_statistics: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -297,310 +361,6 @@ export type Database = {
       refresh_choice_statistics_with_monitoring: {
         Args: Record<PropertyKey, never>
         Returns: undefined
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-  storage: {
-    Tables: {
-      buckets: {
-        Row: {
-          allowed_mime_types: string[] | null
-          avif_autodetection: boolean | null
-          created_at: string | null
-          file_size_limit: number | null
-          id: string
-          name: string
-          owner: string | null
-          owner_id: string | null
-          public: boolean | null
-          updated_at: string | null
-        }
-        Insert: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id: string
-          name: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          updated_at?: string | null
-        }
-        Update: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id?: string
-          name?: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      migrations: {
-        Row: {
-          executed_at: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Insert: {
-          executed_at?: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Update: {
-          executed_at?: string | null
-          hash?: string
-          id?: number
-          name?: string
-        }
-        Relationships: []
-      }
-      objects: {
-        Row: {
-          bucket_id: string | null
-          created_at: string | null
-          id: string
-          last_accessed_at: string | null
-          metadata: Json | null
-          name: string | null
-          owner: string | null
-          owner_id: string | null
-          path_tokens: string[] | null
-          updated_at: string | null
-          user_metadata: Json | null
-          version: string | null
-        }
-        Insert: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Update: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "objects_bucketId_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      s3_multipart_uploads: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          id: string
-          in_progress_size: number
-          key: string
-          owner_id: string | null
-          upload_signature: string
-          user_metadata: Json | null
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          id: string
-          in_progress_size?: number
-          key: string
-          owner_id?: string | null
-          upload_signature: string
-          user_metadata?: Json | null
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          id?: string
-          in_progress_size?: number
-          key?: string
-          owner_id?: string | null
-          upload_signature?: string
-          user_metadata?: Json | null
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "s3_multipart_uploads_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      s3_multipart_uploads_parts: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          etag: string
-          id: string
-          key: string
-          owner_id: string | null
-          part_number: number
-          size: number
-          upload_id: string
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          etag: string
-          id?: string
-          key: string
-          owner_id?: string | null
-          part_number: number
-          size?: number
-          upload_id: string
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          etag?: string
-          id?: string
-          key?: string
-          owner_id?: string | null
-          part_number?: number
-          size?: number
-          upload_id?: string
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "s3_multipart_uploads_parts_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "s3_multipart_uploads_parts_upload_id_fkey"
-            columns: ["upload_id"]
-            isOneToOne: false
-            referencedRelation: "s3_multipart_uploads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      can_insert_object: {
-        Args: { bucketid: string; metadata: Json; name: string; owner: string }
-        Returns: undefined
-      }
-      extension: {
-        Args: { name: string }
-        Returns: string
-      }
-      filename: {
-        Args: { name: string }
-        Returns: string
-      }
-      foldername: {
-        Args: { name: string }
-        Returns: string[]
-      }
-      get_size_by_bucket: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          bucket_id: string
-          size: number
-        }[]
-      }
-      list_multipart_uploads_with_delimiter: {
-        Args: {
-          bucket_id: string
-          delimiter_param: string
-          max_keys?: number
-          next_key_token?: string
-          next_upload_token?: string
-          prefix_param: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-        }[]
-      }
-      list_objects_with_delimiter: {
-        Args: {
-          bucket_id: string
-          delimiter_param: string
-          max_keys?: number
-          next_token?: string
-          prefix_param: string
-          start_after?: string
-        }
-        Returns: {
-          id: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      operation: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      search: {
-        Args: {
-          bucketname: string
-          levels?: number
-          limits?: number
-          offsets?: number
-          prefix: string
-          search?: string
-          sortcolumn?: string
-          sortorder?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
       }
     }
     Enums: {
@@ -730,13 +490,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
-    Enums: {},
-  },
-  storage: {
     Enums: {},
   },
 } as const

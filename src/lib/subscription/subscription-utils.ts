@@ -6,7 +6,8 @@ export type SubscriptionTier = 'free' | 'premium'
 export interface SubscriptionStatus {
   tier: SubscriptionTier
   isActive: boolean
-  expiresAt?: Date
+  expiresAt?: Date | null
+  daysRemaining?: number
   features: SubscriptionFeatures
 }
 
@@ -43,40 +44,57 @@ const SUBSCRIPTION_FEATURES: Record<SubscriptionTier, SubscriptionFeatures> = {
 }
 
 /**
- * Get user's current subscription status
+ * Check if user has active time-limited premium
+ */
+async function checkTimeLimitedPremium(userId: string): Promise<{
+  isActive: boolean
+  expiresAt: Date | null
+  daysRemaining: number
+}> {
+  try {
+    // Get the latest completed purchase
+    const { data: purchases, error } = await supabase
+      .from('premium_purchases')
+      .select('expires_at, created_at')
+      .eq('user_id', userId)
+      .eq('payment_status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (error || !purchases || purchases.length === 0) {
+      return { isActive: false, expiresAt: null, daysRemaining: 0 }
+    }
+
+    const purchase = purchases[0]
+    const expiresAt = new Date(purchase.expires_at)
+    
+    const now = new Date()
+    const isActive = expiresAt > now
+    const daysRemaining = isActive 
+      ? Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      : 0
+
+    return { isActive, expiresAt: isActive ? expiresAt : null, daysRemaining }
+  } catch (error) {
+    console.error('Error checking time-limited premium:', error)
+    return { isActive: false, expiresAt: null, daysRemaining: 0 }
+  }
+}
+
+/**
+ * Get user's current subscription status (updated for time-limited premium)
  */
 export async function getSubscriptionStatus(userId: string): Promise<SubscriptionStatus> {
-  try {
-    const { data: profile, error } = await supabase
-      .from('user_profiles')
-      .select('subscription_tier')
-      .eq('id', userId)
-      .single()
-
-    if (error) {
-      console.error('Error fetching subscription status:', error)
-      // Default to free tier on error
-      return {
-        tier: 'free',
-        isActive: true,
-        features: SUBSCRIPTION_FEATURES.free
-      }
-    }
-
-    const tier = (profile?.subscription_tier as SubscriptionTier) || 'free'
-    
-    return {
-      tier,
-      isActive: true, // For MVP, all subscriptions are active
-      features: SUBSCRIPTION_FEATURES[tier]
-    }
-  } catch (error) {
-    console.error('Subscription status check failed:', error)
-    return {
-      tier: 'free',
-      isActive: true,
-      features: SUBSCRIPTION_FEATURES.free
-    }
+  const premiumStatus = await checkTimeLimitedPremium(userId)
+  
+  const tier: SubscriptionTier = premiumStatus.isActive ? 'premium' : 'free'
+  
+  return {
+    tier,
+    isActive: premiumStatus.isActive,
+    expiresAt: premiumStatus.expiresAt,
+    daysRemaining: premiumStatus.daysRemaining,
+    features: SUBSCRIPTION_FEATURES[tier]
   }
 }
 
