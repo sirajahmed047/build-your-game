@@ -100,6 +100,16 @@ const nextConfig = {
   env: {
     CUSTOM_KEY: process.env.NODE_ENV,
   },
+
+  // Webpack configuration for Netlify compatibility
+  // Ensures @/* path aliases work in Netlify's build environment
+  webpack: (config, { isServer }) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, 'src'),
+    }
+    return config
+  },
   
   // PWA configuration (if needed in the future)
   // pwa: {
