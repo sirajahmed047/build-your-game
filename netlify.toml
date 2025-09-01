@@ -1,18 +1,11 @@
 [build]
-  publish = ".next"
   command = "npm run build"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "18"
-  NPM_FLAGS = "--production=true"
   
 
-
-# Redirect all requests to Next.js
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
 
 # API routes handling
 [[redirects]]
