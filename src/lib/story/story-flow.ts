@@ -3,6 +3,7 @@ import { StoryRunQueries, StoryStepQueries, UserProfileQueries, ChoiceStatsQueri
 import { generateStory } from '../ai/story-generation'
 import { detectEnding, type EndingClassification } from '../endings/ending-detection'
 import { EndingCollectionQueries } from '../endings/ending-queries'
+import { StoryArcManager } from './story-arc'
 import { 
   safeGetGameState, 
   safeGetPersonalityTraits, 
@@ -263,13 +264,26 @@ export class StoryFlowService {
         userId: session.storyRun.user_id || ''
       }
 
-      // Add context for story continuation
+      // Add context for story continuation with arc guidance
+      const currentArc = StoryArcManager.getCurrentArc(
+        nextStepNumber, 
+        session.storyRun.length, 
+        updatedGameState
+      )
+      
+      const storyGuidance = StoryArcManager.generateStoryGuidance(
+        currentArc, 
+        [] // TODO: Track previous choices for better guidance
+      )
+
       const continueRequest = {
         ...storyRequest,
         storyRunId: session.storyRun.id,
         currentStep: nextStepNumber,
         gameState: updatedGameState,
-        previousChoice: selectedChoice.text
+        previousChoice: selectedChoice.text,
+        storyArc: currentArc,
+        storyGuidance
       }
 
       const storyResult = await generateStory(continueRequest)
@@ -283,7 +297,9 @@ export class StoryFlowService {
         session.storyRun.length
       )
 
-      const isEnding = endingDetection.isEnding || 
+      // More conservative ending detection - only end if explicitly detected OR near max steps
+      const isNearMaxSteps = nextStepNumber >= (this.getMaxStepsForLength(session.storyRun.length) - 1)
+      const isEnding = (endingDetection.isEnding && nextStepNumber >= 5) || 
                       nextStepNumber >= this.getMaxStepsForLength(session.storyRun.length)
 
       let endingData: StoryProgressionResult['endingData']
@@ -604,9 +620,9 @@ export class StoryFlowService {
    */
   private static getMaxStepsForLength(length: string): number {
     switch (length) {
-      case 'quick': return 6
-      case 'standard': return 10
-      default: return 8
+      case 'quick': return 8  // Increased from 6 to allow for better story development
+      case 'standard': return 12  // Increased from 10 for fuller stories
+      default: return 10
     }
   }
 

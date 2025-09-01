@@ -24,33 +24,65 @@ export function detectEnding(
   genre: string,
   storyLength: string
 ): EndingDetectionResult {
-  // Check for explicit ending indicators in story text
-  const endingKeywords = [
+  // Enhanced ending keyword detection
+  const strongEndingKeywords = [
     'the end', 'finally', 'at last', 'years later', 'epilogue',
-    'concluded', 'finished', 'completed', 'resolution', 'farewell'
+    'concluded', 'finished', 'completed', 'resolution', 'farewell',
+    'and so ends', 'thus concludes', 'in the end', 'final chapter',
+    'victory was', 'defeated once and for all', 'peace was restored',
+    'mystery was solved', 'truth was revealed', 'journey ends',
+    'final battle', 'ultimate sacrifice', 'destiny fulfilled'
   ]
   
-  const hasEndingKeywords = endingKeywords.some(keyword => 
+  const hasStrongEndingKeywords = strongEndingKeywords.some(keyword => 
     storyText.toLowerCase().includes(keyword)
   )
 
-  // Check story length - if we've reached expected conclusion points
-  const isLongEnough = gameState.act >= 3 || (storyLength === 'quick' && gameState.act >= 2)
-  
-  // Check for resolution flags in game state
-  const hasResolutionFlags = gameState.flags.some(flag => 
+  // Analyze plot thread resolution
+  const flags = gameState.flags || []
+  const plotResolutionFlags = flags.filter(flag => 
     flag.includes('resolved') || flag.includes('concluded') || flag.includes('ended') ||
-    flag.includes('complete') || flag.includes('defeated') || flag.includes('solved')
+    flag.includes('complete') || flag.includes('defeated') || flag.includes('solved') ||
+    flag.includes('saved') || flag.includes('victory') || flag.includes('peace')
   )
 
-  // Determine if this is an ending
-  const isEnding = hasEndingKeywords || (isLongEnough && hasResolutionFlags)
+  // Check for character arc completion
+  const relationshipCount = Object.keys(gameState.relationships || {}).length
+  const strongRelationships = Object.values(gameState.relationships || {})
+    .filter(val => Math.abs(val) > 70).length
+  
+  const characterArcComplete = strongRelationships > 0 && (
+    flags.some(f => f.includes('character_growth')) ||
+    Object.values(personalityTraits).some(trait => Math.abs(trait - 50) > 30)
+  )
+
+  // Story length considerations
+  const minStepsForEnding = storyLength === 'quick' ? 6 : 8
+  const hasMinimumDevelopment = flags.length >= minStepsForEnding
+
+  // Main conflict resolution check
+  const hasMainConflictResolution = 
+    flags.some(f => f.includes('main_quest_complete')) ||
+    flags.some(f => f.includes('final_confrontation')) ||
+    flags.some(f => f.includes('climax_resolved'))
+
+  // Comprehensive ending criteria
+  const hasStrongResolution = plotResolutionFlags.length >= 2
+  const hasSufficientDevelopment = hasMinimumDevelopment && relationshipCount > 0
+  const hasNarrativeConclusion = hasStrongEndingKeywords && (hasMainConflictResolution || characterArcComplete)
+
+  // Only consider it an ending if we have multiple strong indicators
+  const isEnding = hasNarrativeConclusion || (
+    hasStrongResolution && 
+    hasSufficientDevelopment && 
+    (hasMainConflictResolution || characterArcComplete)
+  )
 
   if (!isEnding) {
     return { isEnding: false }
   }
 
-  // Classify the ending
+  // Classify the ending with enhanced criteria
   const classification = classifyEnding(storyText, gameState, personalityTraits, genre)
   
   return {

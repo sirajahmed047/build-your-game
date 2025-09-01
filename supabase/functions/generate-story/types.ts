@@ -9,6 +9,8 @@ export interface StoryGenerationRequest {
   currentStep?: number
   gameState?: GameState
   previousChoice?: string
+  storyArc?: any // StoryArc type from story-arc.ts
+  storyGuidance?: string
 }
 
 export interface StoryResponse {
