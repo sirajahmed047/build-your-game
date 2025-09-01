@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { ChoiceStatistics } from '@/components/story/ChoiceStatistics'
-import { PersonalityComparison } from '@/components/story/PersonalityComparison'
-import { CronJobMonitor } from '@/components/admin/CronJobMonitor'
+import { ChoiceStatistics } from '../../components/story/ChoiceStatistics'
+import { PersonalityComparison } from '../../components/story/PersonalityComparison'
+import { CronJobMonitor } from '../../components/admin/CronJobMonitor'
 import type { PersonalityTraits } from '@/types/story'
 
 const mockPersonalityTraits: PersonalityTraits = {
