@@ -226,6 +226,7 @@ export type Database = {
           personality_traits: Json | null
           premium_days_purchased: number | null
           premium_expires_at: string | null
+          premium_package_type: string | null
           premium_purchased_at: string | null
           subscription_tier: string | null
           total_choices: number | null
@@ -240,6 +241,7 @@ export type Database = {
           personality_traits?: Json | null
           premium_days_purchased?: number | null
           premium_expires_at?: string | null
+          premium_package_type?: string | null
           premium_purchased_at?: string | null
           subscription_tier?: string | null
           total_choices?: number | null
@@ -254,6 +256,7 @@ export type Database = {
           personality_traits?: Json | null
           premium_days_purchased?: number | null
           premium_expires_at?: string | null
+          premium_package_type?: string | null
           premium_purchased_at?: string | null
           subscription_tier?: string | null
           total_choices?: number | null
@@ -352,6 +355,10 @@ export type Database = {
       }
       increment_choice_selections: {
         Args: { p_choice_slug: string; p_genre: string; p_option_id: string }
+        Returns: undefined
+      }
+      increment_user_choice_count: {
+        Args: { user_id: string }
         Returns: undefined
       }
       refresh_choice_statistics: {
