@@ -100,15 +100,6 @@ const nextConfig = {
   env: {
     CUSTOM_KEY: process.env.NODE_ENV,
   },
-
-  // Webpack configuration for better path resolution
-  webpack: (config, { isServer }) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': require('path').resolve(__dirname, 'src'),
-    }
-    return config
-  },
   
   // PWA configuration (if needed in the future)
   // pwa: {

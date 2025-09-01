@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useAuth } from '../components/auth/AuthProvider'
-import { AuthButton } from '../components/auth/AuthButton'
+import { useAuth } from '@/components/auth/AuthProvider'
+import { AuthButton } from '@/components/auth/AuthButton'
 import { Button } from '../components/ui/Button'
 
 export default function Home() {

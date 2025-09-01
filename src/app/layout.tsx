@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { AuthProvider } from '../components/auth/AuthProvider'
-import { QueryProvider } from '../components/providers/QueryProvider'
-import { Navigation } from '../components/ui/Navigation'
-import { ErrorBoundary } from '../components/ui/ErrorBoundary'
-import { logProductionReadiness } from '../lib/utils/production-check'
+import { AuthProvider } from '@/components/auth/AuthProvider'
+import { QueryProvider } from '@/components/providers/QueryProvider'
+import { Navigation } from '@/components/ui/Navigation'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
+import { logProductionReadiness } from '@/lib/utils/production-check'
 
 // Run production readiness check on startup
 if (typeof window === 'undefined') {
