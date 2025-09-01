@@ -1,8 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Performance optimizations
+  // Configure dynamic routes and optimizations
   experimental: {
     optimizePackageImports: ['@supabase/supabase-js', '@tanstack/react-query'],
+  },
+  
+  // Configure build ID
+  async generateBuildId() {
+    return 'build-' + Date.now()
   },
   
   // Compression

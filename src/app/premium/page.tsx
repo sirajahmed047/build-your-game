@@ -192,7 +192,7 @@ export default function PremiumPage() {
             <div>
               <h3 className="font-semibold text-gray-900 mb-2">What happens to my stories when premium expires?</h3>
               <p className="text-gray-600">
-                All your stories, endings, and progress are saved permanently. You just won't be able to create new premium content until you renew.
+                All your stories, endings, and progress are saved permanently. You just won&apos;t be able to create new premium content until you renew.
               </p>
             </div>
             
