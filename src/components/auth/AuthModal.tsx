@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { SignInForm } from './SignInForm'
 import { SignUpForm } from './SignUpForm'
 
@@ -12,6 +13,11 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModalProps) {
   const [mode, setMode] = useState<'signin' | 'signup'>(defaultMode)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     setMode(defaultMode)
@@ -29,14 +35,14 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
     }
   }, [isOpen])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
   const handleSuccess = () => {
     onClose()
   }
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
         {/* Backdrop */}
         <div 
@@ -45,7 +51,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
         />
         
         {/* Modal */}
-        <div className="relative card-floating max-w-md w-full p-8">
+        <div className="relative card-floating max-w-md w-full p-8 z-[9999]">
           {/* Close button */}
           <button
             onClick={onClose}
@@ -88,4 +94,6 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }
