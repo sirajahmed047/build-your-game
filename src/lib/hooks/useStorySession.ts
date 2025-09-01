@@ -132,17 +132,6 @@ export function useStorySession(options: UseStorySessionOptions = {}) {
     queryClient.removeQueries({ queryKey: ['storySession'] })
   }, [queryClient])
 
-  // Get story history for current user
-  const { data: storyHistory, isLoading: isLoadingHistory } = useQuery({
-    queryKey: ['storyHistory', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return []
-      const { StoryRunQueries } = await import('../supabase/queries')
-      return StoryRunQueries.getByUserId(user.id)
-    },
-    enabled: !!user?.id
-  })
-
   // Computed values
   const isActive = !!currentSession && !currentSession.isCompleted
   const canMakeChoice = isActive && currentSession?.currentStep && !selectChoiceMutation.isPending
@@ -173,10 +162,6 @@ export function useStorySession(options: UseStorySessionOptions = {}) {
     gameState: currentSession?.gameState,
     personalityTraits: currentSession?.personalityTraits,
     storyText: currentSession?.currentStep?.story_text,
-    
-    // History
-    storyHistory,
-    isLoadingHistory,
     
     // Loading states
     isLoadingSession,

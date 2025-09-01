@@ -4,16 +4,12 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '@/components/auth/AuthProvider'
 import { AuthButton } from '@/components/auth/AuthButton'
 import { useStorySession } from '@/lib/hooks/useStorySession'
-import { useSaveReplay } from '@/lib/hooks/useSaveReplay'
 import { useChoiceStatistics } from '@/lib/hooks/useChoiceStatistics'
 import { useEndingsCollection } from '@/lib/hooks/useEndingsCollection'
 import { getDominantTraits, getTraitDescription } from '@/lib/utils/game-state'
 import { ChoiceStatistics } from './ChoiceStatistics'
 import { PersonalityComparison } from './PersonalityComparison'
 import { AchievementNotification } from '../endings/AchievementNotification'
-import { SavePoints, SavePointIndicator } from './SavePoints'
-import { StoryHistory } from './StoryHistory'
-import { QuickReplayButton } from './ReplayOptions'
 import { PremiumStoryGenerator } from './PremiumStoryGenerator'
 import { Button } from '@/components/ui/Button'
 import type { Choice, StoryProgressionResult, ChoiceSelectionResult, StoryGenerationRequest } from '@/types/story'
@@ -31,11 +27,6 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
   const [showChoiceStats, setShowChoiceStats] = useState(false)
   const [showPersonalityComparison, setShowPersonalityComparison] = useState(false)
   const [achievementMessage, setAchievementMessage] = useState<string | null>(null)
-  const [showSavePoints, setShowSavePoints] = useState(false)
-  const [showStoryHistory, setShowStoryHistory] = useState(false)
-  
-  // Track last saved step to prevent duplicate saves
-  const lastSavedStepRef = useRef<{ storyRunId: string; stepNumber: number } | null>(null)
 
   const {
     currentSession,
@@ -51,7 +42,6 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
     isProcessing,
     hasError,
     error,
-    storyHistory,
     getCurrentStoryRunId
   } = useStorySession({
     onStoryProgression: (result: StoryProgressionResult) => {
@@ -97,26 +87,6 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
     }
   })
 
-  // Save and replay functionality
-  const {
-    autoSaveProgress,
-    setCurrentStory,
-    savePoints,
-    isLoadingSavePoints
-  } = useSaveReplay({
-    onProgressSaved: (savePoint) => {
-      console.log('Progress saved:', savePoint)
-    },
-    onProgressRestored: (session) => {
-      console.log('Progress restored:', session)
-      // The story session will be updated automatically
-    },
-    onReplayStarted: (session) => {
-      console.log('Replay started:', session)
-      setShowStoryHistory(false)
-    }
-  })
-
   // Endings collection tracking
   const {
     refreshCollection
@@ -129,52 +99,6 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
       setTimeout(() => setAchievementMessage(null), 5000)
     }
   })
-
-  // Auto-save progress when story state changes (Requirement 6.1)
-  useEffect(() => {
-    if (currentSession?.currentStep && gameState && personalityTraits) {
-      const currentStoryRunId = getCurrentStoryRunId()
-      if (currentStoryRunId) {
-        // Check if we already saved this step to prevent duplicate saves
-        const currentStep = currentSession.currentStep
-        const lastSaved = lastSavedStepRef.current
-        
-        if (!lastSaved || 
-            lastSaved.storyRunId !== currentStoryRunId || 
-            lastSaved.stepNumber !== currentStep.step_number) {
-          
-          setCurrentStory(currentStoryRunId)
-          
-          // Auto-save at each decision point
-          autoSaveProgress(
-            currentStoryRunId,
-            currentStep.step_number,
-            gameState,
-            personalityTraits,
-            storyText || '',
-            availableChoices,
-            `Step ${currentStep.step_number}: ${storyText?.substring(0, 50)}...`
-          )
-          
-          // Update ref to track what we saved
-          lastSavedStepRef.current = {
-            storyRunId: currentStoryRunId,
-            stepNumber: currentStep.step_number
-          }
-        }
-      }
-    }
-  }, [
-    currentSession?.currentStep?.step_number, // Only trigger on step changes
-    currentSession?.storyRun?.id, // Or story run changes
-    gameState,
-    personalityTraits,
-    storyText,
-    availableChoices,
-    autoSaveProgress,
-    setCurrentStory,
-    getCurrentStoryRunId
-  ])
 
   // Choice statistics tracking
   const {
@@ -239,51 +163,6 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
         onStartStory={handleStartStory}
         loading={isProcessing}
       />
-
-      {storyHistory && storyHistory.length > 0 && (
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Your Story History</h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowStoryHistory(true)}
-              className="flex items-center"
-            >
-              <span className="mr-1">📚</span>
-              View All
-            </Button>
-          </div>
-          <div className="space-y-2">
-            {storyHistory.slice(0, 3).map((run) => (
-              <div key={run.id} className="p-3 bg-gray-50 rounded border">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium capitalize">{run.genre} - {run.length}</span>
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      run.completed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {run.completed ? 'Completed' : 'In Progress'}
-                    </span>
-                    {run.completed && (
-                      <QuickReplayButton
-                        storyRunId={run.id}
-                        size="sm"
-                        onReplayStarted={() => {
-                          // Replay will start automatically
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
-                {run.ending_title && (
-                  <p className="text-sm text-gray-600 mt-1">{run.ending_title}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 
@@ -299,22 +178,8 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
               <span className="text-sm font-medium text-gray-600">
                 Act {gameState?.act} • Step {currentSession.currentStep?.step_number}
               </span>
-              <SavePointIndicator
-                stepNumber={currentSession.currentStep?.step_number || 1}
-                isCurrentStep={true}
-                onClick={() => setShowSavePoints(true)}
-              />
             </div>
             <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowSavePoints(true)}
-                className="flex items-center text-xs"
-              >
-                <span className="mr-1">💾</span>
-                Save Points
-              </Button>
               <span className="text-sm text-gray-500 capitalize">
                 {currentSession.storyRun.genre} • {currentSession.storyRun.challenge}
               </span>
@@ -459,12 +324,6 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <QuickReplayButton
-                  storyRunId={currentSession.storyRun.id}
-                  onReplayStarted={() => {
-                    // Replay will start automatically
-                  }}
-                />
                 <button
                   onClick={() => {
                     handleStartStory({
@@ -651,54 +510,6 @@ export function StorySession({ onStoryCompleted, onError }: StorySessionProps) {
         />
       )}
 
-      {/* Save Points Modal */}
-      {showSavePoints && currentSession && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <SavePoints
-              storyRunId={currentSession.storyRun.id}
-              onRestoreProgress={(savePoint) => {
-                console.log('Restored to save point:', savePoint)
-                setShowSavePoints(false)
-              }}
-              onClose={() => setShowSavePoints(false)}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Story History Modal */}
-      {showStoryHistory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="bg-white rounded-lg">
-              <div className="p-4 border-b flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Story History</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowStoryHistory(false)}
-                >
-                  ✕
-                </Button>
-              </div>
-              <div className="p-4">
-                <StoryHistory
-                  onStorySelected={(storyRun) => {
-                    console.log('Selected story:', storyRun)
-                    setShowStoryHistory(false)
-                    // Could load the story here if needed
-                  }}
-                  onReplayStarted={() => {
-                    setShowStoryHistory(false)
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
       {!isActive && !isCompleted ? renderStoryStart() : renderStoryContent()}
       
       {isProcessing && currentSession && (
